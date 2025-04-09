@@ -1,0 +1,45 @@
+name: Deploy to Development
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_USER_REGION }}
+
+      - name: Install SAM CLI
+        run: |
+          pip install aws-sam-cli
+
+      - name: Build SAM Application
+        run: |
+          mvn clean package
+          sam build --use-container
+
+      - name: Deploy SAM Application
+        env:
+          EMAIL_SUBSCRIBERS: ${{ secrets.DEV_EMAIL_SUBSCRIBERS }}
+        run: |
+          sam deploy \
+          --stack-name s3-notifier-dev \
+          --parameter-overrides EnvironmentName=dev EmailSubscribers=$EMAIL_SUBSCRIBERS \
+          --no-fail-on-empty-changeset \
+          --capabilities CAPABILITY_IAM \
+          --resolve-s3

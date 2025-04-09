@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, prod]
+  EmailSubscribers:
+    Type: String
+    Default: "solomonchamamme@gmail.com"
+
+Resources:
+  UploadBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub s3-upload-notifier-${EnvironmentName}-${AWS::AccountId}
+      # Remove notification configuration from here
+
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub s3-upload-notifications-${EnvironmentName}
+      Subscription:
+        - Endpoint: !Ref EmailSubscribers
+          Protocol: email
+
+  NotificationLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.text.Main::handleRequest
+      Runtime: java21
+      Timeout: 30
+      MemorySize: 256
+      FunctionName: !Sub s3-upload-notifier-lambda-${EnvironmentName}
+      CodeUri: ./
+      Policies:
+        - Statement:
+            - Sid: S3Access
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:DeleteObject
+              Resource: !Sub arn:aws:s3:::s3-upload-notifier-${EnvironmentName}-${AWS::AccountId}/*
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt NotificationTopic.TopicName
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref NotificationTopic
+      Events:
+        S3Event:
+          Type: S3
+          Properties:
+            Bucket: !Ref UploadBucket
+            Events: s3:ObjectCreated:*
+
+Outputs:
+  BucketName:
+    Value: !Ref UploadBucket
+  LambdaFunctionName:
+    Value: !Ref NotificationLambda
+  SNSTopicArn:
+    Value: !Ref NotificationTopic
