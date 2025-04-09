@@ -10,7 +10,7 @@ import software.amazon.awssdk.services.sns.model.PublishRequest;
 public class Main implements RequestHandler<S3Event, String> {
 
     private final SnsClient snsClient = SnsClient.create();
-    private final String topicArn = System.getenv("TOPIC_ARN");
+    private final String topicArn = System.getenv("SNS_TOPIC_ARN");
 
     @Override
     public String handleRequest(S3Event s3Event, Context context) {
