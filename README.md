@@ -4,6 +4,7 @@ Welcome to the Event-Driven S3 Notifier project! This is a serverless applicatio
 
 ## 🎯 Project Overview
 
+
 This application demonstrates a simple yet powerful event-driven workflow:
 
 1. 📦 An object is uploaded to an S3 bucket.
